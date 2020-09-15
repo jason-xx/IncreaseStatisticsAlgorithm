@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import top.xoai.archforce.entity.CountObject;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -22,46 +21,17 @@ public class Algorithm {
     private final Logger logger = LoggerFactory.getLogger(Algorithm.class);
 
     @Autowired
-    private QueryMapperImpl queryMapper;
+    private IncreaseAlgorithmQueryMapperImpl queryMapper;
 
-    private final ReferenceFrameObject referenceFrameObject = new ReferenceFrameObject(queryMapper);
+    private final IncreaseAlgorithmObject increaseAlgorithmObject = new IncreaseAlgorithmObject(queryMapper);
 
     private Map<String,Long> indicatorResult;
 
-    public void algorithmDo(){
-        boolean first = true;
-        if(first) {
-            referenceFrameObject.initBaseIndicator(new HashMap(){{
-                put("indicator1",0L);
-                put("indicator2",0L);
-                put("indicator3",0L);
-                put("indicator4",0L);
-                put("indicator5",0L);
-                put("indicator6",0L);
-                put("indicator7",0L);
-                put("indicator8",0L);
-                put("indicator9",0L);
-            }},queryMapper);
-            first = false;
-        }
-        logger.info("baseIndex:" + referenceFrameObject.getDbBaseIndex());
-        CountObject countResult = queryMapper.countIncrease(referenceFrameObject.getDbBaseIndex());
-        referenceFrameObject.updateCurrentDBIndex(countResult.getIncreasedCount());
-        logger.info("increasedCount:" + countResult.getIncreasedCount() + ",currentIndex:" + referenceFrameObject.getDbCurrentIndex());
-        indicatorResult = new HashMap<>(referenceFrameObject.getDbBaseIndexIndicator());
-        if(referenceFrameObject.hasOffset()){
-            countResult.getStatisticalData().forEach((key,value)-> indicatorResult.merge(key,value, Long::sum));
-            logger.info("increased:" + referenceFrameObject.getDbBaseIndexIndicator());
-        }
-        logger.info("indicatorResult:" + indicatorResult.toString());
-        logger.info("------------------------------------------------------------------------------------------");
-    }
-
-    private ThreadLocal<ReferenceFrameObject> threadLocal = new ThreadLocal<>();
+    private ThreadLocal<IncreaseAlgorithmObject> threadLocal = new ThreadLocal<>();
 
     public void query(){
         if(threadLocal.get() == null){
-            threadLocal.set(new ReferenceFrameObject(queryMapper));
+            threadLocal.set(new IncreaseAlgorithmObject(queryMapper));
         }
         CountObject countObject = threadLocal.get().query();
         System.out.println("one query finished.");

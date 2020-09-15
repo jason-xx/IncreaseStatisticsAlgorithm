@@ -1,5 +1,6 @@
 package top.xoai;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 
 /**
@@ -12,5 +13,10 @@ public class TEST {
     public static void main(String[] args) {
         String opu = "4";
         System.out.println(Arrays.stream(opu.split(",")).filter(item->item.equals("2")).findAny().isPresent());
+
+        BigDecimal num = new BigDecimal("2222.333");
+        System.out.println(num.toString());
+
+        System.out.println("" + new Byte("-1"));
     }
 }

@@ -31,23 +31,24 @@ import java.util.Map;
     ·------------·-----------·-----------·-----------·-----------·-----------·-----------·-----------·----------->
     0           t1          t2          t3          t4          t5          t6          t7          t8
     case3：currentDataBaseIndex=e13（t4<e13<=t5）的统计值为x，则最终统计值为 a + x；
-    同时更新lastDataBaseIndex=Double.valueOf(Math.floor((currentDataBaseIndex - DATA_BASE_SPEED - lastDataBaseIndex)/DATA_BASE_SPEED)).intValue() * DATA_BASE_SPEED=t3
+    同时更新lastDataBaseIndex+=Double.valueOf(Math.floor((currentDataBaseIndex - DATA_BASE_SPEED - lastDataBaseIndex)/DATA_BASE_SPEED)).intValue() * DATA_BASE_SPEED=t3
     和lastDataBaseIndex的统计值为a + z，z为t2到t3的增量数据
                                                       e13
                                                        👇🏼
     ·------------·-----------·-----------·-----------·-----------·-----------·-----------·-----------·----------->
     0           t1          t2          t3          t4          t5          t6          t7          t8
     case4：currentDataBaseIndex=e14（t4<e14 && t5<=e14）的统计值为x，则最终统计值为 a + x；
-    同时更新lastDataBaseIndex=Double.valueOf(Math.floor((currentDataBaseIndex - DATA_BASE_SPEED - lastDataBaseIndex)/DATA_BASE_SPEED)).intValue() * DATA_BASE_SPEED
+    同时更新lastDataBaseIndex+=Double.valueOf(Math.floor((currentDataBaseIndex - DATA_BASE_SPEED - lastDataBaseIndex)/DATA_BASE_SPEED)).intValue() * DATA_BASE_SPEED
     和lastDataBaseIndex的统计值为a + z，z为t2到更新后的lastDataBaseIndex的增量数据（极端情况）
                                                                                           e14
                                                                                            👇🏼
     ·------------·-----------·-----------·-----------·-----------·-----------·-----------·-----------·----------->
     0           t1          t2          t3          t4          t5          t6          t7          t8
      */
-public class ReferenceFrameObject {
-    private final Logger logger = LoggerFactory.getLogger(ReferenceFrameObject.class);
+public class IncreaseAlgorithmObject {
+    private final Logger logger = LoggerFactory.getLogger(IncreaseAlgorithmObject.class);
 
+    private static final Long DEFAULT_INCREASE_SIZE = 999999999999L;
     //数据库的理论写入速度
     private Long DATA_BASE_SPEED = 100000L;
 
@@ -60,7 +61,7 @@ public class ReferenceFrameObject {
     //基础数据量的偏移数量
     private Long baseIndexOffset = 0L;
 
-    private QueryMapperImpl queryMapper;
+    private IncreaseAlgorithmQueryMapper queryMapper;
 
     private Map<String,Long> dbBaseIndexIndicator = new HashMap(){{
         put("indicator1",0L);
@@ -86,35 +87,23 @@ public class ReferenceFrameObject {
         put("indicator9",0L);
     }};
 
-    public ReferenceFrameObject(QueryMapperImpl queryMapper) {
+    public IncreaseAlgorithmObject(IncreaseAlgorithmQueryMapperImpl queryMapper) {
         this.queryMapper = queryMapper;
     }
 
-    public ReferenceFrameObject(Map<String, Long> dbBaseIndexIndicator, QueryMapperImpl queryMapper) {
+    public IncreaseAlgorithmObject(Map<String, Long> dbBaseIndexIndicator, IncreaseAlgorithmQueryMapperImpl queryMapper) {
         this.dbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.preDbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.queryMapper = queryMapper;
     }
 
-    public void initBaseIndicator(Map<String,Long> dbBaseIndexIndicator, QueryMapperImpl queryMapper){
+    public void initBaseIndicator(Map<String,Long> dbBaseIndexIndicator, IncreaseAlgorithmQueryMapperImpl queryMapper){
         this.dbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.preDbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.queryMapper = queryMapper;
     }
 
     private void updateLastDataBaseIndex(){
-//        if(currentDataBaseIndex-lastDataBaseIndex <= DATA_BASE_SPEED && isTotalIncreased()){//case1
-//            //do nothing
-//        }else if(currentDataBaseIndex - lastDataBaseIndex > DATA_BASE_SPEED &&
-//                currentDataBaseIndex - lastDataBaseIndex <= 2*DATA_BASE_SPEED &&
-//                isTotalIncreased()){//case2
-//            //do nothing
-//        }else if(currentDataBaseIndex - lastDataBaseIndex > 2*DATA_BASE_SPEED){//case3、case4
-//            Integer oldLastDataBaseIndex = lastDataBaseIndex;
-//            lastDataBaseIndex = Double.valueOf(Math.floor((currentDataBaseIndex - DATA_BASE_SPEED - lastDataBaseIndex)/DATA_BASE_SPEED)).intValue() * DATA_BASE_SPEED;
-//            CountObject countObject = queryMapper.countChunk(oldLastDataBaseIndex,lastDataBaseIndex);
-//            countObject.getStatisticalData().forEach((key,value)-> indicator.merge(key,value, Long::sum));
-//        }
         this.dbBaseIndexIndicator.forEach((k,v)->this.preDbBaseIndexIndicator.put(k,v));
         if(isNeedUpdateIndex()){
             Long oldLastDataBaseIndex = dbBaseIndex;
@@ -127,7 +116,7 @@ public class ReferenceFrameObject {
     public synchronized CountObject query(){
         logger.info("before:dbBaseIndex:" + getDbBaseIndex());
         logger.info("before:dbBaseIndexIndicator:" + getDbBaseIndexIndicator());
-        CountObject countResult = queryMapper.countIncrease(getDbBaseIndex());
+        CountObject countResult = queryMapper.countChunk(getDbBaseIndex(),DEFAULT_INCREASE_SIZE);
         updateCurrentDBIndex(countResult.getIncreasedCount());
         final Map<String,Long> indicatorResult = new HashMap<>(getPreDbBaseIndexIndicator());
         countResult.getStatisticalData().forEach((key,value)-> indicatorResult.merge(key,value, Long::sum));
