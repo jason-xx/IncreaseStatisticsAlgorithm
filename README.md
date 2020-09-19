@@ -10,5 +10,5 @@
 ```
 
 ```
-2.ava -jar mysql-tester-1.0.3.jar --mysql-username=root -mysql-password=123456 --mysql-url=jdbc:mysql://localhost:3306/mtest?serverTimezone=UTC --user-count=1000000 --max-item-per-user=10
+2.java -jar mysql-tester-1.0.3.jar --mysql-username=root -mysql-password=123456 --mysql-url=jdbc:mysql://localhost:3306/mtest?serverTimezone=UTC --user-count=1000000 --max-item-per-user=10
 ```
