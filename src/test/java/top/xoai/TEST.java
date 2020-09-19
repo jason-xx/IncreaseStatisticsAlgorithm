@@ -1,5 +1,8 @@
 package top.xoai;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 
@@ -18,5 +21,11 @@ public class TEST {
         System.out.println(num.toString());
 
         System.out.println("" + new Byte("-1"));
+
+//        Byte b = new Byte(null);
+//        System.out.println(b);
+
+        Logger logger = LoggerFactory.getLogger(TEST.class);
+        logger.info("print param:{},{}",1,"2");
     }
 }

@@ -48,7 +48,7 @@ import java.util.Map;
 public class IncreaseAlgorithmObject {
     private final Logger logger = LoggerFactory.getLogger(IncreaseAlgorithmObject.class);
 
-    private static final Long DEFAULT_INCREASE_SIZE = 999999999999L;
+    private static final Long DEFAULT_INCREASE_SIZE = Long.MAX_VALUE;
     //数据库的理论写入速度
     private Long DATA_BASE_SPEED = 100000L;
 
@@ -87,7 +87,7 @@ public class IncreaseAlgorithmObject {
         put("indicator9",0L);
     }};
 
-    public IncreaseAlgorithmObject(IncreaseAlgorithmQueryMapperImpl queryMapper) {
+    public IncreaseAlgorithmObject(IncreaseAlgorithmQueryMapper queryMapper) {
         this.queryMapper = queryMapper;
     }
 
@@ -97,13 +97,16 @@ public class IncreaseAlgorithmObject {
         this.queryMapper = queryMapper;
     }
 
-    public void initBaseIndicator(Map<String,Long> dbBaseIndexIndicator, IncreaseAlgorithmQueryMapperImpl queryMapper){
+    public IncreaseAlgorithmObject(Map<String, Long> dbBaseIndexIndicator, Long dataBaseSpeed, IncreaseAlgorithmQueryMapperImpl queryMapper) {
         this.dbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.preDbBaseIndexIndicator = new HashMap<>(dbBaseIndexIndicator);
         this.queryMapper = queryMapper;
+        this.DATA_BASE_SPEED = dataBaseSpeed;
     }
 
-    private void updateLastDataBaseIndex(){
+    private void updateIndexAndBaseIndicator(Long baseIndexOffset){
+        this.baseIndexOffset = baseIndexOffset;
+        this.dbCurrentIndex = dbBaseIndex + baseIndexOffset;
         this.dbBaseIndexIndicator.forEach((k,v)->this.preDbBaseIndexIndicator.put(k,v));
         if(isNeedUpdateIndex()){
             Long oldLastDataBaseIndex = dbBaseIndex;
@@ -114,20 +117,15 @@ public class IncreaseAlgorithmObject {
     }
 
     public synchronized CountObject query(){
-        logger.info("before:dbBaseIndex:" + getDbBaseIndex());
-        logger.info("before:dbBaseIndexIndicator:" + getDbBaseIndexIndicator());
-        CountObject countResult = queryMapper.countChunk(getDbBaseIndex(),DEFAULT_INCREASE_SIZE);
-        updateCurrentDBIndex(countResult.getIncreasedCount());
+        logger.info("before--dbBaseIndex:{},dbBaseIndexIndicator:{}", dbBaseIndex,dbBaseIndexIndicator);
+        CountObject countResult = queryMapper.countChunk(dbBaseIndex, DEFAULT_INCREASE_SIZE);
+        updateIndexAndBaseIndicator(countResult.getIncreasedCount());
         final Map<String,Long> indicatorResult = new HashMap<>(getPreDbBaseIndexIndicator());
         countResult.getStatisticalData().forEach((key,value)-> indicatorResult.merge(key,value, Long::sum));
-        logger.info("after:dbBaseIndex:" + getBaseIndexOffset());
-        logger.info("after:dbBaseIndexIndicator:" + getDbBaseIndex());
-        logger.info("after:currentDBIndex:" + getDbCurrentIndex());
-        logger.info("after:baseIndexOffsetIndicator:" + countResult.getStatisticalData());
-        logger.info("after:indicatorResult:" + indicatorResult.toString());
-        logger.info("------------------------------------------------------------------------------------------");
+        logger.info("after:dbBaseIndex:{},dbBaseIndexIndicator:{},currentDBIndex:{},baseIndexOffsetIndicator:{},indicatorResult:{}",
+                baseIndexOffset,dbBaseIndex,dbCurrentIndex,countResult.getStatisticalData(),indicatorResult);
         CountObject rsObj = new CountObject(new HashMap<>(indicatorResult));
-        rsObj.setIncreasedCount(getDbCurrentIndex());
+        rsObj.setIncreasedCount(dbCurrentIndex);
         return rsObj;
     }
 
@@ -141,10 +139,6 @@ public class IncreaseAlgorithmObject {
 
     public Long getDATA_BASE_SPEED() {
         return DATA_BASE_SPEED;
-    }
-
-    public void setDATA_BASE_SPEED(Long DATA_BASE_SPEED) {
-        this.DATA_BASE_SPEED = DATA_BASE_SPEED;
     }
 
     public Long getDbBaseIndex() {
@@ -169,12 +163,6 @@ public class IncreaseAlgorithmObject {
 
     public Long getBaseIndexOffset() {
         return baseIndexOffset;
-    }
-
-    public void updateCurrentDBIndex(Long baseIndexOffset) {
-        this.dbCurrentIndex = dbBaseIndex + baseIndexOffset;
-        this.baseIndexOffset = baseIndexOffset;
-        updateLastDataBaseIndex();
     }
 
 }
